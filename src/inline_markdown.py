@@ -22,6 +22,51 @@ def extract_markdown_links(text: str) -> list[tuple[str, str]]:
     return matches
 
 
+def split_nodes_delimiter(
+    old_nodes: list[TextNode],
+    delimiter: str,
+    text_type: TextType,
+) -> list[TextNode]:
+    # ---- Pseudocode ----
+    # For each old node:
+    # If it is not plain text:
+    #     keep it unchanged.
+
+    # If it is plain text:
+    #     split its text by the delimiter.
+
+    #     If the number of parts is even:
+    #         there was an unmatched delimiter, so raise an error.
+
+    #     For each split part:
+    #         even index = normal text
+    #         odd index = delimited text type
+    new_nodes = []
+
+    for old_node in old_nodes:
+        if old_node.text_type != TextType.PLAIN:
+            new_nodes.append(old_node)
+            continue
+
+        split_text = old_node.text.split(delimiter)
+
+        if len(split_text) % 2 == 0:
+            raise ValueError(
+                f"Invalid Markdown syntax: missing closing delimiter '{delimiter}'"
+            )
+
+        for index, text in enumerate(split_text):
+            if text == "":
+                continue
+
+            if index % 2 == 0:
+                new_nodes.append(TextNode(text, TextType.PLAIN))
+            else:
+                new_nodes.append(TextNode(text, text_type))
+
+    return new_nodes
+
+
 def shared_split_nodes(
     old_nodes: list[TextNode],
     extract_func: Callable[[str], list[tuple[str, str]]],
@@ -74,3 +119,13 @@ def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
 
 def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
     return shared_split_nodes(old_nodes, extract_markdown_links, TextType.LINK)
+
+
+def text_to_textnodes(text: str) -> list[TextNode]:
+    raw_nodes = [TextNode(text, TextType.PLAIN)]
+    split_nodes = split_nodes_delimiter(raw_nodes, "**", TextType.BOLD)
+    split_nodes = split_nodes_delimiter(split_nodes, "_", TextType.ITALIC)
+    split_nodes = split_nodes_delimiter(split_nodes, "`", TextType.CODE)
+    image_nodes = split_nodes_image(split_nodes)
+    link_nodes = split_nodes_link(image_nodes)
+    return link_nodes
