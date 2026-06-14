@@ -1,3 +1,5 @@
+import os
+
 from block_markdown import markdown_to_html_node
 
 
@@ -76,3 +78,42 @@ def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
 
     except Exception as e:
         raise Exception(f"Error generating page: {e}")
+
+
+def generate_pages_recursive(
+    dir_path_content: str, template_path: str, dest_dir_path: str
+) -> None:
+    """
+    Recursively generates pages for all markdown files in a given directory.
+
+    Args:
+        dir_path_content (str): The path to the directory containing markdown files.
+        template_path (str): The path to the template file.
+        dest_dir_path (str): The path to the destination directory where generated pages will be saved.
+
+    Raises:
+        Exception: If there is an error during page generation, an Exception is raised with an appropriate error message.
+    """
+
+    try:
+        # Ensure the destination directory exists
+        os.makedirs(dest_dir_path, exist_ok=True)
+
+        # Iterate through each item in the content directory
+        for item in os.listdir(dir_path_content):
+            item_path = os.path.join(dir_path_content, item)
+
+            if os.path.isdir(item_path):
+                # Recursively handle nested subdirectories
+                generate_pages_recursive(
+                    item_path, template_path, os.path.join(dest_dir_path, item)
+                )
+            elif item.endswith(".md"):
+                # Generate page for markdown files
+                dest_file_path = os.path.join(
+                    dest_dir_path, item.replace(".md", ".html")
+                )
+                generate_page(item_path, template_path, dest_file_path)
+
+    except Exception as e:
+        raise Exception(f"Error generating pages recursively: {e}")
