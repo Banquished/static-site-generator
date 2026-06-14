@@ -25,7 +25,9 @@ def extract_title(markdown: str) -> str:
     raise Exception(f"Markdown does not contain a valid title: {markdown}")
 
 
-def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
+def generate_page(
+    from_path: str, template_path: str, dest_path: str, basepath: str
+) -> None:
     """
     Generates a page by reading markdown content from a source file,
     extracting the title, and then writing the content to a destination file.
@@ -66,8 +68,11 @@ def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
 
             # 6. Replace the `{{ Title }}` and `{{ Content }}` placeholders in the
             # template with the HTML and title you generated.
-            page_content = template_content.replace("{{ Title }}", title).replace(
-                "{{ Content }}", markdown_converted
+            page_content = (
+                template_content.replace("{{ Title }}", title)
+                .replace("{{ Content }}", markdown_converted)
+                .replace('href="/', f'href="{basepath}')
+                .replace('src="/', f'src="{basepath}')
             )
 
             # 7. Write the new full HTML page to a file at `dest_path`.
@@ -81,7 +86,7 @@ def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
 
 
 def generate_pages_recursive(
-    dir_path_content: str, template_path: str, dest_dir_path: str
+    dir_path_content: str, template_path: str, dest_dir_path: str, basepath: str
 ) -> None:
     """
     Recursively generates pages for all markdown files in a given directory.
@@ -90,6 +95,7 @@ def generate_pages_recursive(
         dir_path_content (str): The path to the directory containing markdown files.
         template_path (str): The path to the template file.
         dest_dir_path (str): The path to the destination directory where generated pages will be saved.
+        basepath (str): The base path to be used in the generated pages.
 
     Raises:
         Exception: If there is an error during page generation, an Exception is raised with an appropriate error message.
@@ -106,14 +112,17 @@ def generate_pages_recursive(
             if os.path.isdir(item_path):
                 # Recursively handle nested subdirectories
                 generate_pages_recursive(
-                    item_path, template_path, os.path.join(dest_dir_path, item)
+                    item_path,
+                    template_path,
+                    os.path.join(dest_dir_path, item),
+                    basepath,
                 )
             elif item.endswith(".md"):
                 # Generate page for markdown files
                 dest_file_path = os.path.join(
                     dest_dir_path, item.replace(".md", ".html")
                 )
-                generate_page(item_path, template_path, dest_file_path)
+                generate_page(item_path, template_path, dest_file_path, basepath)
 
     except Exception as e:
         raise Exception(f"Error generating pages recursively: {e}")
